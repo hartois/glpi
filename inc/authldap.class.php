@@ -43,6 +43,8 @@ class AuthLDAP extends CommonDBTM {
    const SIMPLE_INTERFACE = 'simple';
    const EXPERT_INTERFACE = 'expert';
 
+   const OPERATION_FAILURE  = -1;
+
    const ACTION_IMPORT      = 0;
    const ACTION_SYNCHRONIZE = 1;
    const ACTION_ALL         = 2;
@@ -2067,6 +2069,9 @@ class AuthLDAP extends CommonDBTM {
 
          $infos = self::searchUserDn($ds,$attribs);
 
+         if ($infos === self::OPERATION_FAILURE)
+            return false;
+
          if ($infos && $infos['dn']) {
             $user_dn = $infos['dn'];
             $login   = $infos[$config_ldap->fields['login_field']];
@@ -2484,9 +2489,11 @@ class AuthLDAP extends CommonDBTM {
          if (is_array($info) && ($info['count'] == 1)) {
             return array('dn'        => $info[0]['dn'],
                          $login_attr => $info[0][$login_attr][0]);
+         }else{
+            return false;
          }
       }
-      return false;
+      return self::OPERATION_FAILURE;
    }
 
 
