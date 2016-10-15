@@ -5715,6 +5715,7 @@ class Search {
     *@return string to display
    **/
    static function showItem($type, $value, &$num, $row, $extraparam='') {
+      global $CFG_GLPI;
 
       $out = "";
       switch ($type) {
@@ -5747,7 +5748,7 @@ class Search {
             break;
 
          default :
-            $out = "<td $extraparam valign='top'>";
+            $out = "<td $extraparam valign='top'><div class='result-cell-wrap collapsed-cell'>";
 
             if (!preg_match('/'.self::LBHR.'/',$value)) {
                $values = preg_split('/'.self::LBBR.'/i',$value);
@@ -5756,24 +5757,27 @@ class Search {
                $values = preg_split('/'.self::LBHR.'/i',$value);
                $line_delimiter = '<hr>';
             }
-            $limitto = 20;
-            if (count($values) > $limitto) {
-               for ( $i=0 ; $i<$limitto ; $i++) {
-                  $out .= $values[$i].$line_delimiter;
+
+            $valTip = '';
+            if (count($values) > 1) {
+               $value = '';
+               foreach ($values as $v){
+                  $value .= $v.$line_delimiter;
                }
-//                $rand=mt_rand();
-               $out .= "...&nbsp;";
                $value = preg_replace('/'.self::LBBR.'/','<br>',$value);
                $value = preg_replace('/'.self::LBHR.'/','<hr>',$value);
-               $out .= Html::showToolTip($value,array('display'   => false,
-                                                      'autoclose' => false));
-
+               $value = '<div style="overflow-y: scroll; width: 350px; height: 200px; font-size: 11px;">'.$value.'</div>';
+               $valTip = "&nbsp;&nbsp;".Html::showToolTip($value,array('img' => $CFG_GLPI["root_doc"]."/pics/list-small.png",
+                   'display'   => false,
+                   'autoclose' => false,
+                   'onclick'   => true));
+               $out .= $values[0];
             } else {
                $value = preg_replace('/'.self::LBBR.'/','<br>',$value);
                $value = preg_replace('/'.self::LBHR.'/','<hr>',$value);
                $out .= $value;
             }
-            $out .= "</td>\n";
+            $out .= "</div><span class='cell-expander'>&raquo;&raquo;</span>".$valTip."</td>\n";
       }
       $num++;
       return $out;
@@ -5885,6 +5889,7 @@ class Search {
 
          default :
             $out = "</table></div>\n";
+            $out .= Html::scriptBlock('setCellExpanders();');
       }
       return $out;
    }
@@ -5958,6 +5963,39 @@ class Search {
             } else {
                $out = "<div class='center'><table border='0' class='tab_cadrehov'>\n";
             }
+            $js = 'function checkOverflow(el)
+                  {
+                     var curOverflow = el.style.overflow;
+                  
+                     if ( !curOverflow || curOverflow === "visible" )
+                        el.style.overflow = "hidden";
+                  
+                     var isOverflowing = el.clientWidth < el.scrollWidth 
+                        || el.clientHeight < el.scrollHeight;
+                  
+                     el.style.overflow = curOverflow;
+                  console.log("checkOverflow");
+                     return isOverflowing;
+                  }
+                  function setCellExpanders(){
+                     console.log("setCellExpanders");
+                     $("div.result-cell-wrap").each(function(el){
+                        if(checkOverflow(this)){
+                           $(this).next().show();
+                        }
+                        $(this).next().on("click",function(el){
+                           if($(this).prev().hasClass("collapsed-cell")){
+                              $(this).prev().switchClass("collapsed-cell","expanded-cell");
+                              $(this).html("&laquo;&laquo;");
+                           }else{
+                              $(this).prev().switchClass("expanded-cell","collapsed-cell");
+                              $(this).html("&raquo;&raquo;");
+                           }
+                        });
+                     });
+                  }
+                  ';
+            $out .= Html::scriptBlock($js);
       }
       return $out;
    }
